@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CypherApp Demo</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+
+    .button-container {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 20px;
+    }
+
+    .response-container {
+      margin-top: 20px;
+    }
+
+    .response-block {
+      margin-bottom: 20px;
+    }
+
+    pre {
+      background: #f4f4f4;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+  </style>
+  <script>
+    const key = "356441cd70d6d38e331f7a8f208ac7817b360940129f5273edcb516f62439b24";
+    const id = "003";
+    const gatekeeperUrl = "https://127.0.0.1:2009/v0";
+
+    function createJWT() {
+      const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+      const payload = btoa(JSON.stringify({ id, exp: Math.floor(Date.now() / 1000) + 10 }));
+      const signature = CryptoJS.HmacSHA256(`${header}.${payload}`, key).toString(CryptoJS.enc.Base64).replace(/=+$/, '');
+      return `${header}.${payload}.${signature}`;
+    }
+
+    async function callEndpoint(endpoint, id, method = "GET", body = null) {
+      const token = createJWT();
+      const headers = {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+      };
+
+      try {
+        const response = await fetch(`${gatekeeperUrl}${endpoint}`, {
+          method,
+          headers,
+          body: body ? JSON.stringify(body) : null,
+        });
+
+        const data = await response.json();
+        document.getElementById(id).textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        document.getElementById(id).textContent = `Error: ${error.message}`;
+      }
+    }
+  </script>
+</head>
+<body>
+  <h1>CypherApp Demo</h1>
+  <div class="button-container">
+    <div class="response-block">
+      <button onclick="callEndpoint('/getbestblockhash', 'response1')">Get Best Block Hash</button>
+      <pre id="response1">Response will appear here...</pre>
+    </div>
+    <div class="response-block">
+      <button onclick="callEndpoint('/getblockchaininfo', 'response2')">Get Blockchain Info</button>
+      <pre id="response2">Response will appear here...</pre>
+    </div>
+    <div class="response-block">
+      <button onclick="callEndpoint('/getbalance', 'response3')">Get Balance</button>
+      <pre id="response3">Response will appear here...</pre>
+    </div>
+    <div class="response-block">
+      <button onclick="callEndpoint('/ln_getinfo', 'response4')">LN Get Info</button>
+      <pre id="response4">Response will appear here...</pre>
+    </div>
+    <div class="response-block">
+      <button onclick="callEndpoint('/ln_create_invoice', 'response5', 'POST', { msatoshi: 10000, label: `invoice_${Date.now()}`, description: 'Bylls order #10649', expiry: 900 })">
+        LN Create Invoice
+      </button>
+      <pre id="response5">Response will appear here...</pre>
+    </div>
+  </div>
+</body>
+</html>
